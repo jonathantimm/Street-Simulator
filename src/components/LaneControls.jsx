@@ -74,7 +74,7 @@ export default function LaneControls() {
               onChange={e => setModeShift(Number(e.target.value))} className="slider"
             />
             <div className="slider-labels"><span>0%</span><span>30%</span></div>
-            <p className="control-note">% of displaced car trips that shift to cycling</p>
+            <p className="control-note">% of displaced car demand that shifts specifically to cycling (separate from baseline traffic evaporation)</p>
           </div>
         </div>
       )}

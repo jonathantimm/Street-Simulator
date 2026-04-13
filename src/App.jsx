@@ -1,4 +1,5 @@
 import Header from './components/Header';
+import Intro from './components/Intro';
 import StreetCanvas from './components/StreetCanvas';
 import LaneControls from './components/LaneControls';
 import Dashboard from './components/Dashboard';
@@ -12,6 +13,7 @@ export default function App() {
   return (
     <div className="app">
       <Header />
+      <Intro />
 
       <main className="sim-section">
         <div className="sim-layout">

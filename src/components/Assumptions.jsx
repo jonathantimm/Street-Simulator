@@ -34,6 +34,16 @@ const SOURCES = [
     usedFor: 'Mode shift assumptions for bike lanes',
     link: 'https://nacto.org',
   },
+  {
+    source: 'Cairns et al., "Traffic Impact of Highway Capacity Reductions" (1998)',
+    usedFor: 'Traffic evaporation — 30–40% of car trips disappear when road capacity is reduced',
+    link: 'https://www.vtpi.org',
+  },
+  {
+    source: 'Ha et al., "The effects of the Cheonggyecheon stream restoration on traffic in Seoul" (2007)',
+    usedFor: 'Traffic evaporation — observed after urban freeway removal',
+    link: 'https://www.vtpi.org',
+  },
 ];
 
 const MODEL_PARAMS = [
@@ -47,17 +57,18 @@ const MODEL_PARAMS = [
   { param: 'Bus peak load factor', value: '0.85', source: 'TCRP Report 165' },
   { param: 'Bus operating speed', value: '12 mph avg (urban, with stops)', source: 'NACTO Bus Design Guide' },
   { param: 'Protected bike lane capacity', value: '1,500–2,000 cyclists/hour', source: 'NACTO Urban Street Design Guide' },
-  { param: 'Mode shift default (bike)', value: '15% of displaced car demand', source: 'NACTO Cycling Streets 2019' },
+  { param: 'Traffic evaporation multiplier', value: '0.6 + 0.4 × (car lane fraction)', source: 'Cairns et al. 1998; Ha et al. 2007; VTPI TDM Encyclopedia' },
+  { param: 'Mode shift default (bike)', value: '25% of displaced car demand', source: 'NACTO Cycling Streets 2019; NYC DOT' },
   { param: 'Average cycling speed', value: '11 mph', source: 'Standard urban assumption' },
 ];
 
 const LIMITATIONS = [
   'The model assumes a uniform block with no driveways, which slightly overstates car lane capacity.',
-  'Mode shift assumptions for bikes are based on city-level research and may not reflect every local context.',
-  'The model does not account for induced demand — adding capacity may attract new trips over time.',
-  'Bus throughput depends heavily on frequency; the model shows potential throughput, not guaranteed outcomes.',
-  'The model does not simulate pedestrians or turning movements, which affect intersection capacity.',
-  'Real-world outcomes depend on implementation quality, enforcement, and local conditions.',
+  'Mode shift and traffic evaporation estimates are based on observed city-level outcomes and may not reflect every local context. Neighborhoods with low transit access or high car dependency may see less evaporation.',
+  'The model captures traffic evaporation (fewer car lanes → less car demand) but does not simulate long-run induced demand in the other direction — adding car capacity may attract new car trips over time, a well-documented but harder-to-quantify effect.',
+  'Bus throughput depends heavily on frequency and stop design; the model shows potential throughput at a given headway, not a guaranteed outcome.',
+  'The model does not simulate pedestrians, cyclists interacting with turning vehicles, or intersection capacity constraints.',
+  'Real-world outcomes depend on implementation quality, enforcement, and local land use patterns.',
 ];
 
 export default function Assumptions() {
@@ -164,24 +175,66 @@ export default function Assumptions() {
               <div className="math-step">
                 <span className="math-label">+ Mode shift riders</span>
                 <span className="math-value">displaced car demand × shift %</span>
-                <span className="math-note">Default 15% of people displaced from converted car lanes shift to bike (NACTO Cycling Streets 2019). Adjustable in Expert Mode.</span>
+                <span className="math-note">Default 25% of people displaced from converted car lanes shift specifically to bike (NACTO Cycling Streets 2019, NYC DOT). Adjustable in Expert Mode.</span>
               </div>
               <div className="math-result">
                 <span>= people/hr/lane</span>
-                <span className="math-example">e.g. AM peak, 15% shift, 1 converted lane: (1,750 × 1.0) + (792 × 0.15) = <strong>1,869 people/hr</strong></span>
+                <span className="math-example">e.g. AM peak, 25% shift, 1 converted lane: (1,750 × 1.0) + (792 × 0.25) = <strong>1,948 people/hr</strong></span>
               </div>
             </div>
           </div>
 
           <div className="math-block">
-            <h4 className="math-block-title">Speed display</h4>
+            <h4 className="math-block-title">Car speed and the corridor demand model</h4>
             <p className="math-prose">
-              Car speed is estimated from the volume-to-capacity (v/c) ratio. Below v/c 0.70,
-              free-flow speed is shown (approximately 28 mph for a typical urban arterial). Above
-              v/c 0.85, the HCM LOS D/E threshold, vehicles enter forced-flow conditions — the
-              animation slows visibly and the speed indicator turns red. Between those thresholds,
-              speed is interpolated linearly.
+              Car speed is estimated from the volume-to-capacity (v/c) ratio of the remaining
+              car lanes. The model uses a three-step process to estimate how many vehicles
+              actually compete for those lanes.
             </p>
+            <div className="math-steps">
+              <div className="math-step">
+                <span className="math-label">Step 1 — Baseline corridor demand</span>
+                <span className="math-value">total lanes × 720 veh/hr × 0.65 × time factor</span>
+                <span className="math-note">Represents realistic vehicle demand for the full corridor width at typical urban arterial loading (CORRIDOR_BASE_VC = 0.65)</span>
+              </div>
+              <div className="math-step">
+                <span className="math-label">× Traffic evaporation multiplier</span>
+                <span className="math-value">0.6 + 0.4 × (car lanes ÷ total lanes)</span>
+                <span className="math-note">
+                  When car lanes are replaced, not all displaced drivers simply pile onto
+                  remaining car lanes — research on road removals and lane reductions
+                  consistently shows 30–40% of car trips disappear entirely (mode shift,
+                  trip consolidation, route change). This multiplier ranges from 1.0 on an
+                  all-car street to 0.6 if every lane were non-car. Sources: London
+                  Embankment study (Cairns et al. 1998), Seoul Cheonggyecheon freeway
+                  removal (Ha et al. 2007), VTPI TDM Encyclopedia.
+                </span>
+              </div>
+              <div className="math-step">
+                <span className="math-label">− Bus ridership (vehicles equivalent)</span>
+                <span className="math-value">bus passengers/hr ÷ 1.1 occupancy</span>
+                <span className="math-note">Every person on the bus is one fewer person who would otherwise drive. The model removes these vehicle-equivalents from car demand.</span>
+              </div>
+              <div className="math-step">
+                <span className="math-label">− Additional mode shift (slider)</span>
+                <span className="math-value">displaced car capacity × shift % ÷ 1.1</span>
+                <span className="math-note">The Expert Mode slider controls the share of remaining displaced car demand that shifts specifically to cycling.</span>
+              </div>
+              <div className="math-result">
+                <span>= remaining vehicle demand on car lanes → v/c ratio → speed</span>
+                <span className="math-example">Below v/c 0.85 (HCM LOS D/E): free-flow (~28 mph). Above: speed drops linearly to ~4 mph at deep congestion.</span>
+              </div>
+            </div>
+            <div className="math-insight">
+              <strong>Key result:</strong> A well-designed street with one car lane, one dedicated
+              bus lane, and one protected bike lane can produce <em>faster car speeds</em> than an
+              all-car street — even with fewer car lanes. Bus and bike infrastructure removes
+              enough vehicle demand (through evaporation and direct mode shift) that the remaining
+              car lane operates below congestion threshold. The all-car street, by contrast,
+              concentrates all trips into cars, the least space-efficient mode, and pushes every
+              lane toward its capacity. Those who must drive are better served by a street that
+              gives alternatives to those who don't.
+            </div>
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 const STEPS = [
   {
@@ -41,13 +41,14 @@ const STEPS = [
 const STORAGE_KEY = 'street-sim-onboarding-done';
 const PAD = 10; // padding around highlighted element
 const TOOLTIP_W = 320;
-const TOOLTIP_H = 200; // approximate
+const MARGIN = 12; // min gap from viewport edge
 
 export default function Onboarding({ onComplete }) {
   const [step, setStep] = useState(0);
   const [visible, setVisible] = useState(false);
   const [highlight, setHighlight] = useState(null); // {top,left,width,height}
   const [tooltipPos, setTooltipPos] = useState(null); // {top,left}
+  const tooltipRef = useRef(null);
 
   const positionForStep = useCallback((stepIndex) => {
     const s = STEPS[stepIndex];
@@ -55,6 +56,8 @@ export default function Onboarding({ onComplete }) {
     if (!el) return;
 
     const rect = el.getBoundingClientRect();
+    // Skip if the element is hidden (e.g. desktop-only elements on mobile)
+    if (rect.width === 0 && rect.height === 0) return;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
@@ -66,28 +69,46 @@ export default function Onboarding({ onComplete }) {
     };
     setHighlight(hl);
 
-    // Position tooltip: prefer below, but flip if not enough space
-    let top, left;
-    const spaceBelow = vh - rect.bottom;
-    const spaceAbove = rect.top;
+    // Use actual tooltip height if we have a rendered ref, else a generous estimate
+    const tooltipH = tooltipRef.current
+      ? tooltipRef.current.getBoundingClientRect().height
+      : 280;
 
-    if (s.preferBelow && spaceBelow > TOOLTIP_H + 20) {
+    const spaceBelow = vh - rect.bottom - PAD - 8;
+    const spaceAbove = rect.top - PAD - 8;
+
+    let top;
+    if (s.preferBelow && spaceBelow >= tooltipH + MARGIN) {
       top = rect.bottom + PAD + 8;
-    } else if (spaceAbove > TOOLTIP_H + 20) {
-      top = rect.top - TOOLTIP_H - PAD - 8;
+    } else if (spaceAbove >= tooltipH + MARGIN) {
+      top = rect.top - PAD - 8 - tooltipH;
+    } else if (spaceBelow >= spaceAbove) {
+      // Not enough room either way — pick the bigger side and clamp
+      top = rect.bottom + PAD + 8;
     } else {
-      top = rect.bottom + PAD + 8;
+      top = rect.top - PAD - 8 - tooltipH;
     }
 
     // Horizontally center on element, clamped to viewport
-    left = rect.left + rect.width / 2 - TOOLTIP_W / 2;
-    left = Math.max(12, Math.min(vw - TOOLTIP_W - 12, left));
+    let left = rect.left + rect.width / 2 - TOOLTIP_W / 2;
+    left = Math.max(MARGIN, Math.min(vw - TOOLTIP_W - MARGIN, left));
 
-    // Clamp top too
-    top = Math.max(12, Math.min(vh - TOOLTIP_H - 12, top));
+    // Clamp vertically so the tooltip is always fully on screen
+    top = Math.max(MARGIN, Math.min(vh - tooltipH - MARGIN, top));
 
     setTooltipPos({ top, left });
   }, []);
+
+  // After the tooltip renders, measure its actual height and correct if overflowing
+  useEffect(() => {
+    if (!tooltipRef.current || !tooltipPos) return;
+    const vh = window.innerHeight;
+    const { bottom } = tooltipRef.current.getBoundingClientRect();
+    if (bottom > vh - MARGIN) {
+      const overflow = bottom - (vh - MARGIN);
+      setTooltipPos(p => ({ ...p, top: Math.max(MARGIN, p.top - overflow) }));
+    }
+  }, [tooltipPos]);
 
   useEffect(() => {
     const done = localStorage.getItem(STORAGE_KEY);
@@ -132,28 +153,25 @@ export default function Onboarding({ onComplete }) {
 
   return (
     <div className="onboarding-overlay" role="dialog" aria-modal="true" aria-label="Onboarding tour">
-      {/* Backdrop with cutout using box-shadow */}
+      {/* Clickable full-screen dismiss layer */}
+      <div
+        onClick={dismiss}
+        style={{ position: 'fixed', inset: 0, zIndex: 200, pointerEvents: 'all' }}
+      />
+      {/* Backdrop with cutout using box-shadow — no inset, just the highlight rect */}
       <div
         className="onboarding-backdrop"
-        onClick={dismiss}
         style={{
           position: 'fixed',
-          inset: 0,
-          zIndex: 200,
-          // Use box-shadow to punch a hole around the target
-          boxShadow: `0 0 0 9999px rgba(0,0,0,0.45)`,
+          zIndex: 201,
           top: highlight.top,
           left: highlight.left,
           width: highlight.width,
           height: highlight.height,
           borderRadius: 8,
+          boxShadow: `0 0 0 9999px rgba(0,0,0,0.45)`,
           pointerEvents: 'none',
         }}
-      />
-      {/* Clickable full-screen dismiss layer behind tooltip */}
-      <div
-        onClick={dismiss}
-        style={{ position: 'fixed', inset: 0, zIndex: 200, pointerEvents: 'all' }}
       />
       {/* Highlight ring */}
       <div
@@ -164,20 +182,22 @@ export default function Onboarding({ onComplete }) {
           left: highlight.left,
           width: highlight.width,
           height: highlight.height,
-          zIndex: 201,
+          zIndex: 202,
           pointerEvents: 'none',
         }}
       />
 
       {/* Tooltip card */}
       <div
+        ref={tooltipRef}
         className="onboarding-tooltip"
         style={{
           position: 'fixed',
           top: tooltipPos.top,
           left: tooltipPos.left,
           width: TOOLTIP_W,
-          zIndex: 202,
+          zIndex: 203,
+          pointerEvents: 'auto',
         }}
         onClick={e => e.stopPropagation()}
       >

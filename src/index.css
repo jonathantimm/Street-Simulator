@@ -153,6 +153,33 @@ button { cursor: pointer; font-family: var(--font); }
 .header-mobile { display: flex; align-items: center; gap: 8px; }
 
 /* ============================================================
+   Intro Banner
+   ============================================================ */
+.intro-banner {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px;
+}
+
+.intro-banner .intro-text,
+.intro-banner .intro-sub {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.intro-banner .intro-text {
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.intro-banner .intro-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ============================================================
    Simulation Section
    ============================================================ */
 .sim-section {
@@ -1717,6 +1744,17 @@ button { cursor: pointer; font-family: var(--font); }
 .math-prose {
   font-size: 13px;
   color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.math-insight {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--accent-light);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: 13px;
+  color: var(--text);
   line-height: 1.7;
 }
 

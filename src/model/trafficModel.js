@@ -49,6 +49,15 @@ const CORRIDOR_BASE_VC = 0.65;
 const EFFECTIVE_CAP_PER_LANE = SOV_SATURATION_FLOW * SOV_ARTERIAL_FACTOR * SOV_GREEN_RATIO;
 // = 720 veh/hr/lane
 
+// Traffic evaporation: when car lanes are replaced by bus/bike lanes, research shows
+// 30–40% of car trips disappear rather than simply transferring to remaining car lanes —
+// drivers shift modes, consolidate trips, or change routes. This constant sets the floor:
+// if every lane were converted away from cars, 60% of baseline vehicle demand would still
+// seek the corridor (freight, emergency, essential trips). The remaining 40% evaporates.
+// Sources: London Embankment (Cairns et al. 1998), Seoul Cheonggyecheon (Ha et al. 2007),
+// VTPI TDM Encyclopedia "traffic evaporation."
+const INDUCED_DEMAND_FLOOR = 0.6;
+
 // Bus parameters
 const BUS_LOAD_FACTOR = 0.85;
 const BUS_SPEED_MPH   = 12;
@@ -172,18 +181,29 @@ export function calculateMetrics(config) {
     ? Math.round(((totalPeople - baselinePeople) / baselinePeople) * 100)
     : 0;
 
-  // Corridor v/c for car speed
-  // Mode shift away from cars applies whenever any non-SOV alternative exists (bus OR bike).
-  // A dedicated bus or bike lane changes travel behavior beyond just its own riders.
-  const corridorVehDemand   = totalLanes * EFFECTIVE_CAP_PER_LANE * avgAllWidthFactor * CORRIDOR_BASE_VC * demandFactor;
-  const busVehRemoved       = busData.peoplePerHour / SOV_OCCUPANCY;
+  // Corridor v/c for car speed — three-step demand reduction model:
+  //
+  // Step 1 — Induced demand (traffic evaporation):
+  //   Replacing car lanes with bus/bike lanes reduces total vehicle demand, not just
+  //   capacity. Multiplier = INDUCED_DEMAND_FLOOR + (1 − floor) × (car lanes / total lanes).
+  //   All-car street → multiplier 1.0. Fully non-car → multiplier 0.6 (40% evaporation).
+  const carLaneFraction         = totalLanes > 0 ? sovLanes / totalLanes : 0;
+  const inducedDemandMultiplier = INDUCED_DEMAND_FLOOR + (1 - INDUCED_DEMAND_FLOOR) * carLaneFraction;
+  const corridorVehDemand       = totalLanes * EFFECTIVE_CAP_PER_LANE * avgAllWidthFactor
+                                  * CORRIDOR_BASE_VC * demandFactor * inducedDemandMultiplier;
+
+  // Step 2 — Bus ridership removes vehicles directly:
+  const busVehRemoved = busData.peoplePerHour / SOV_OCCUPANCY;
+
+  // Step 3 — Additional mode shift (slider) removes further vehicles:
   const modeShiftVehRemoved = (busLanes + bikeLanes) > 0
     ? displacedCarPeople * (modeShift / 100) / SOV_OCCUPANCY
     : 0;
-  const remainingCarVeh     = Math.max(0, corridorVehDemand - busVehRemoved - modeShiftVehRemoved);
-  const sovLaneCap        = sovLanes * avgSovCap;
-  const vcRatio           = sovLaneCap > 0 ? remainingCarVeh / sovLaneCap : 0;
-  const speedMph          = vcToSpeed(vcRatio);
+
+  const remainingCarVeh = Math.max(0, corridorVehDemand - busVehRemoved - modeShiftVehRemoved);
+  const sovLaneCap      = sovLanes * avgSovCap;
+  const vcRatio         = sovLaneCap > 0 ? remainingCarVeh / sovLaneCap : 0;
+  const speedMph        = vcToSpeed(vcRatio);
 
   const totalWidthFt = lanes.reduce((s, l) => s + l.widthFt, 0);
   const sqFtPerPerson = totalPeople > 0
