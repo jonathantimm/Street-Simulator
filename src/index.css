@@ -22,7 +22,10 @@
   --shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
 }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
 
 body {
   background: var(--bg);
@@ -31,6 +34,7 @@ body {
   font-size: 15px;
   line-height: 1.6;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 a { color: var(--accent); text-decoration: none; }
@@ -1837,7 +1841,12 @@ button { cursor: pointer; font-family: var(--font); }
 
 @media (max-width: 479px) {
   .segmented-toggle { flex-wrap: wrap; }
-  .seg-btn { min-width: 60px; }
+  .seg-btn { min-width: 60px; flex: 1; }
+  .sticky-counter-inner { gap: 8px; padding: 8px 14px; }
+  .sticky-cta { display: none; }
+  .sticky-speed { padding-left: 8px; }
+  .sticky-lane-summary { display: none; }
+  .sticky-divider { display: none; }
 }
 
 @media (min-width: 1600px) {

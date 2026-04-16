@@ -8,7 +8,6 @@ function lane(type, widthFt) {
 const DEFAULT_LANES = [
   lane(LANE_TYPES.SOV),
   lane(LANE_TYPES.SOV),
-  lane(LANE_TYPES.SOV),
 ];
 
 // URL serialization: "sov:11,bus:12,bike:6,parking:8"
@@ -57,8 +56,8 @@ function buildURLParams(s) {
 
 const initial = parseURLState() || {
   lanes:           DEFAULT_LANES,
-  totalWidthFt:    70,
-  sidewalkWidthFt: 12,
+  totalWidthFt:    40,
+  sidewalkWidthFt: 9,
   timeOfDay:       TIME_OF_DAY.AM_PEAK,
   busHeadway:      10,
   busCapacity:     'standard',
