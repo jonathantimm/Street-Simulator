@@ -20,7 +20,8 @@ export default function StickyCounter() {
   const busHeadway  = useSimStore(s => s.busHeadway);
   const busCapacity = useSimStore(s => s.busCapacity);
   const modeShift   = useSimStore(s => s.modeShift);
-  const metrics     = calculateMetrics({ lanes, timeOfDay, busHeadway, busCapacity, modeShift });
+  const oneWay      = useSimStore(s => s.oneWay);
+  const metrics     = calculateMetrics({ lanes, timeOfDay, busHeadway, busCapacity, modeShift, oneWay });
 
   useEffect(() => {
     const target = document.getElementById('dashboard');

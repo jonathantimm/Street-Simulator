@@ -8,6 +8,9 @@ import About from './components/About';
 import Assumptions from './components/Assumptions';
 import Footer from './components/Footer';
 import StickyCounter from './components/StickyCounter';
+import ScenarioTabs from './components/ScenarioTabs';
+import ComparisonBar from './components/ComparisonBar';
+import PrintComparison from './components/PrintComparison';
 
 export default function App() {
   return (
@@ -16,6 +19,8 @@ export default function App() {
       <Intro />
 
       <main className="sim-section">
+        <ScenarioTabs />
+        <ComparisonBar />
         <div className="sim-layout">
           <div className="sim-left">
             <div id="onboarding-canvas">
@@ -35,6 +40,7 @@ export default function App() {
 
       <Onboarding />
       <StickyCounter />
+      <PrintComparison />
     </div>
   );
 }

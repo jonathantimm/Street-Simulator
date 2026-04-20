@@ -119,7 +119,10 @@ export function calculateBusThroughput(laneCount, headwayMinutes, busCapacity, t
 }
 
 export function calculateMetrics(config) {
-  const { lanes: rawLanes, timeOfDay, busHeadway, busCapacity, modeShift } = config;
+  const { lanes: rawLanes, timeOfDay, busHeadway, busCapacity, modeShift, oneWay = false } = config;
+
+  // One-way streets remove opposing-flow friction and allow better signal coordination
+  const ONE_WAY_FACTOR = oneWay ? 1.05 : 1.0;
 
   // Normalize lanes to objects
   const lanes = rawLanes.map(normalizeLane);
@@ -135,10 +138,10 @@ export function calculateMetrics(config) {
   const busLanes  = busLaneObjs.length;
   const bikeLanes = bikeLaneObjs.length;
 
-  // SOV people/hr — adjusted per lane width
+  // SOV people/hr — adjusted per lane width and street direction
   const sovPeopleTotal = Math.round(
     sovLaneObjs.reduce((sum, l) => {
-      const cap = EFFECTIVE_CAP_PER_LANE * laneWidthFactor(l.widthFt) * demandFactor;
+      const cap = EFFECTIVE_CAP_PER_LANE * laneWidthFactor(l.widthFt) * demandFactor * ONE_WAY_FACTOR;
       return sum + cap * SOV_OCCUPANCY;
     }, 0)
   );
@@ -147,12 +150,12 @@ export function calculateMetrics(config) {
   const avgSovWidthFactor = sovLanes > 0
     ? sovLaneObjs.reduce((s, l) => s + laneWidthFactor(l.widthFt), 0) / sovLanes
     : 1;
-  const avgSovCap = EFFECTIVE_CAP_PER_LANE * avgSovWidthFactor;
+  const avgSovCap = EFFECTIVE_CAP_PER_LANE * avgSovWidthFactor * ONE_WAY_FACTOR;
 
   // Baseline (all SOV)
   const avgAllWidthFactor = lanes.reduce((s, l) => s + laneWidthFactor(l.widthFt), 0) / totalLanes;
   const baselinePeople = Math.round(
-    EFFECTIVE_CAP_PER_LANE * avgAllWidthFactor * demandFactor * SOV_OCCUPANCY * totalLanes
+    EFFECTIVE_CAP_PER_LANE * avgAllWidthFactor * demandFactor * SOV_OCCUPANCY * totalLanes * ONE_WAY_FACTOR
   );
 
   // Bus
@@ -214,6 +217,7 @@ export function calculateMetrics(config) {
     totalPeople,
     baselinePeople,
     vsBaseline,
+    oneWay,
     sov: {
       peoplePerHour:        sovPeopleTotal,
       vehiclesPerHour:      Math.round(sovLanes * EFFECTIVE_CAP_PER_LANE * avgSovWidthFactor * demandFactor),

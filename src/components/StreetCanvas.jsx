@@ -26,9 +26,9 @@ const SPEED = {
 
 // Build layout from lane objects — widths proportional to widthFt
 // Assigns direction: -1 = moves upward (toward top), +1 = moves downward (toward bottom)
-// SOV lanes: left half go up (-1), right half go down (+1) — two-way traffic
-// Bus / bike: single direction (-1)
-function getLaneLayout(lanes, canvasW, sidewalkWidthFt, totalWidthFt) {
+// Two-way: left half of SOV go up (-1), right half go down (+1)
+// One-way: all SOV go up (-1)
+function getLaneLayout(lanes, canvasW, sidewalkWidthFt, totalWidthFt, oneWay = false) {
   const sidewalkFraction = sidewalkWidthFt / totalWidthFt;
   const sidewalkPx = canvasW * sidewalkFraction;
   const travelPx = canvasW - sidewalkPx * 2;
@@ -48,8 +48,12 @@ function getLaneLayout(lanes, canvasW, sidewalkWidthFt, totalWidthFt) {
 
   // Assign travel directions
   const sovIndices = layout.reduce((arr, l, i) => l.type === LANE_TYPES.SOV ? [...arr, i] : arr, []);
-  const splitAt = Math.ceil(sovIndices.length / 2); // left half go up, right half go down
-  sovIndices.forEach((idx, i) => { layout[idx].dir = i < splitAt ? -1 : 1; });
+  if (oneWay) {
+    sovIndices.forEach(idx => { layout[idx].dir = -1; });
+  } else {
+    const splitAt = Math.ceil(sovIndices.length / 2);
+    sovIndices.forEach((idx, i) => { layout[idx].dir = i < splitAt ? -1 : 1; });
+  }
 
   // Bus and bike lanes: single direction (upward)
   layout.forEach(l => {
@@ -192,23 +196,24 @@ export default function StreetCanvas() {
   const busHeadway      = useSimStore(s => s.busHeadway);
   const busCapacity     = useSimStore(s => s.busCapacity);
   const modeShift       = useSimStore(s => s.modeShift);
-  const metrics = calculateMetrics({ lanes, timeOfDay, busHeadway, busCapacity, modeShift });
+  const oneWay          = useSimStore(s => s.oneWay);
+  const metrics = calculateMetrics({ lanes, timeOfDay, busHeadway, busCapacity, modeShift, oneWay });
 
-  stateRef.current = { lanes, totalWidthFt, sidewalkWidthFt, metrics };
+  stateRef.current = { lanes, totalWidthFt, sidewalkWidthFt, metrics, oneWay };
 
   function rebuild() {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const { lanes: ls, totalWidthFt: tw, sidewalkWidthFt: sw, metrics: m } = stateRef.current;
+    const { lanes: ls, totalWidthFt: tw, sidewalkWidthFt: sw, metrics: m, oneWay: ow } = stateRef.current;
     canvas.width  = canvas.parentElement?.clientWidth || 400;
     canvas.height = CANVAS_H;
-    const layout  = getLaneLayout(ls, canvas.width, sw, tw);
+    const layout  = getLaneLayout(ls, canvas.width, sw, tw, ow);
     layoutRef.current   = layout;
     vehiclesRef.current = spawnVehicles(layout, m);
   }
 
   const laneKey = lanes.map(l => `${l.type}:${l.widthFt}`).join(',');
-  useEffect(() => { rebuild(); }, [laneKey, totalWidthFt, sidewalkWidthFt, metrics.sov.isCongested]);
+  useEffect(() => { rebuild(); }, [laneKey, totalWidthFt, sidewalkWidthFt, metrics.sov.isCongested, oneWay]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -222,8 +227,8 @@ export default function StreetCanvas() {
       canvas.width  = canvas.parentElement?.clientWidth || 400;
       canvas.height = CANVAS_H;
       if (stateRef.current) {
-        const { lanes: ls, totalWidthFt: tw, sidewalkWidthFt: sw } = stateRef.current;
-        layoutRef.current   = getLaneLayout(ls, canvas.width, sw, tw);
+        const { lanes: ls, totalWidthFt: tw, sidewalkWidthFt: sw, oneWay: ow } = stateRef.current;
+        layoutRef.current   = getLaneLayout(ls, canvas.width, sw, tw, ow);
         vehiclesRef.current = spawnVehicles(layoutRef.current, stateRef.current.metrics);
       }
     });

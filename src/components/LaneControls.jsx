@@ -16,11 +16,13 @@ export default function LaneControls() {
   const modeShift   = useSimStore(s => s.modeShift);
   const mode        = useSimStore(s => s.mode);
   const lanes       = useSimStore(s => s.lanes);
+  const oneWay      = useSimStore(s => s.oneWay);
 
   const setTimeOfDay   = useSimStore(s => s.setTimeOfDay);
   const setBusHeadway  = useSimStore(s => s.setBusHeadway);
   const setBusCapacity = useSimStore(s => s.setBusCapacity);
   const setModeShift   = useSimStore(s => s.setModeShift);
+  const setOneWay      = useSimStore(s => s.setOneWay);
 
   const hasBusLane = lanes.some(l => (l.type || l) === 'bus');
 
@@ -29,6 +31,26 @@ export default function LaneControls() {
       <CrossSection />
 
       <div className="lane-controls-divider" />
+
+      <div className="control-group">
+        <label className="control-label">Traffic Direction</label>
+        <div className="segmented-toggle" role="group">
+          <button
+            className={`seg-btn ${!oneWay ? 'active' : ''}`}
+            onClick={() => setOneWay(false)}
+            aria-pressed={!oneWay}
+          >
+            Two-way
+          </button>
+          <button
+            className={`seg-btn ${oneWay ? 'active' : ''}`}
+            onClick={() => setOneWay(true)}
+            aria-pressed={oneWay}
+          >
+            One-way
+          </button>
+        </div>
+      </div>
 
       <div className="control-group" id="onboarding-lane">
         <label className="control-label">Time of Day</label>

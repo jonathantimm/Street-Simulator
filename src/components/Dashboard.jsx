@@ -54,8 +54,9 @@ export default function Dashboard() {
   const busHeadway = useSimStore(s => s.busHeadway);
   const busCapacity = useSimStore(s => s.busCapacity);
   const modeShift = useSimStore(s => s.modeShift);
+  const oneWay = useSimStore(s => s.oneWay);
 
-  const metrics = calculateMetrics({ lanes, timeOfDay, busHeadway, busCapacity, modeShift });
+  const metrics = calculateMetrics({ lanes, timeOfDay, busHeadway, busCapacity, modeShift, oneWay });
   const { totalPeople, baselinePeople, vsBaseline, sov, bus, bike, sovLanes, busLanes, bikeLanes, sqFtPerPerson } = metrics;
 
   const totalForBar = Math.max(totalPeople, 1);

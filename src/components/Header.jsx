@@ -39,6 +39,7 @@ export default function Header() {
           </div>
           <a href="#assumptions" className="nav-link">Assumptions</a>
           <a href="#about" className="nav-link">About</a>
+          <button className="print-btn" onClick={() => window.print()}>Print</button>
           <button className="share-btn" onClick={handleShare}>
             {shareToast ? 'Copied!' : 'Share'}
           </button>
