@@ -1,7 +1,7 @@
 import useSimStore from '../store/useSimStore';
 import { calculateMetrics, speedLabel, speedColor } from '../model/trafficModel';
 
-const TYPE_COLOR = { sov: '#616875', bus: '#6b3535', bike: '#2d5a3d', parking: '#374151' };
+const TYPE_COLOR = { sov: '#616875', bus: '#6b3535', bike: '#2d5a3d', parking: '#374151', buffer: '#a89340', tree: '#3a6b3a' };
 
 function LaneBar({ lanes }) {
   const total = lanes.reduce((s, l) => s + l.widthFt, 0) || 1;

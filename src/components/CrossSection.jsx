@@ -4,10 +4,10 @@ import { LANE_TYPES, DEFAULT_LANE_WIDTH } from '../model/trafficModel';
 export const MAX_STREET_WIDTH = 100; // ft — Eastern Pkwy / Ocean Pkwy style boulevard
 export const MIN_STREET_WIDTH = 30;  // ft
 
-const TYPE_CYCLE = [LANE_TYPES.SOV, LANE_TYPES.BUS, LANE_TYPES.BIKE, LANE_TYPES.PARKING];
-const TYPE_LABEL = { sov: 'Car', bus: 'Bus', bike: 'Bike', parking: 'Parking' };
-const TYPE_EMOJI = { sov: '🚗', bus: '🚌', bike: '🚲', parking: '🅿️' };
-const TYPE_COLOR = { sov: '#616875', bus: '#6b3535', bike: '#2d5a3d', parking: '#374151' };
+const TYPE_CYCLE = [LANE_TYPES.SOV, LANE_TYPES.BUS, LANE_TYPES.BIKE, LANE_TYPES.PARKING, LANE_TYPES.BUFFER, LANE_TYPES.TREE];
+const TYPE_LABEL = { sov: 'Car', bus: 'Bus', bike: 'Bike', parking: 'Parking', buffer: 'Buffer', tree: 'Tree strip' };
+const TYPE_EMOJI = { sov: '🚗', bus: '🚌', bike: '🚲', parking: '🅿️', buffer: '⬛', tree: '🌳' };
+const TYPE_COLOR = { sov: '#616875', bus: '#6b3535', bike: '#2d5a3d', parking: '#374151', buffer: '#a89340', tree: '#3a6b3a' };
 
 // NYC reference points for total street width
 function streetWidthNote(ft) {
@@ -56,6 +56,17 @@ function laneWidthNote(type, ft) {
     if (ft <= 7)  return 'Tight parallel parking — doors difficult';
     if (ft === 8) return 'Standard NYC parallel parking width';
     return 'Wide parking — room to spare';
+  }
+  if (type === LANE_TYPES.BUFFER) {
+    if (ft <= 2) return 'Paint-only buffer — minimal protection';
+    if (ft <= 4) return 'Standard flex-post buffer — NACTO recommended';
+    if (ft <= 6) return 'Wide buffer — room for planters or bollards';
+    return 'Very wide buffer';
+  }
+  if (type === LANE_TYPES.TREE) {
+    if (ft <= 2) return 'Minimum tree strip — tight fit for street trees';
+    if (ft <= 4) return 'Standard street tree zone — NYC Parks standard';
+    return 'Wide planting strip — room for bioswales';
   }
   return '';
 }

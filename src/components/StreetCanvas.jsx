@@ -9,6 +9,8 @@ const LANE_BG = {
   [LANE_TYPES.BUS]:     '#6b3535',
   [LANE_TYPES.BIKE]:    '#2d5a3d',
   [LANE_TYPES.PARKING]: '#374151',
+  [LANE_TYPES.BUFFER]:  '#a89340',
+  [LANE_TYPES.TREE]:    '#3a6b3a',
 };
 
 const EMOJI = {
@@ -66,7 +68,8 @@ function getLaneLayout(lanes, canvasW, sidewalkWidthFt, totalWidthFt, oneWay = f
 function spawnVehicles(layout, metrics) {
   const vehicles = [];
   layout.forEach(lane => {
-    if (lane.type === 'sidewalk' || lane.type === LANE_TYPES.PARKING) return;
+    if (lane.type === 'sidewalk' || lane.type === LANE_TYPES.PARKING ||
+        lane.type === LANE_TYPES.BUFFER || lane.type === LANE_TYPES.TREE) return;
     const cx = lane.x + lane.width / 2;
     const emojiSize = Math.min(lane.width * 0.52, 40);
     const dir = lane.dir ?? -1;
@@ -116,7 +119,33 @@ function drawScene(ctx, layout, W, H) {
     ctx.fillStyle = LANE_BG[lane.type] || '#555';
     ctx.fillRect(lane.x, 0, lane.width, H);
 
-    if (lane.type === LANE_TYPES.PARKING) {
+    if (lane.type === LANE_TYPES.BUFFER) {
+      // Diagonal hazard stripes
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(lane.x, 0, lane.width, H);
+      ctx.clip();
+      ctx.strokeStyle = 'rgba(0,0,0,0.22)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([]);
+      const stripeGap = 14;
+      for (let y = -H; y < H * 2; y += stripeGap) {
+        ctx.beginPath();
+        ctx.moveTo(lane.x, y);
+        ctx.lineTo(lane.x + lane.width, y + lane.width);
+        ctx.stroke();
+      }
+      ctx.restore();
+    } else if (lane.type === LANE_TYPES.TREE) {
+      // Tree emoji spaced vertically
+      const treeSize = Math.min(lane.width * 1.4, 22);
+      ctx.font = `${Math.round(treeSize)}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (let y = 50; y < H; y += 90) {
+        ctx.fillText('🌳', lane.x + lane.width / 2, y);
+      }
+    } else if (lane.type === LANE_TYPES.PARKING) {
       ctx.strokeStyle = 'rgba(255,255,255,0.25)';
       ctx.lineWidth = 1;
       ctx.setLineDash([]);

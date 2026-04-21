@@ -899,6 +899,8 @@ button { cursor: pointer; font-family: var(--font); }
 .cs-lane-card--bus     { border-left: 3px solid #7c2020; }
 .cs-lane-card--bike    { border-left: 3px solid #166534; }
 .cs-lane-card--parking { border-left: 3px solid #374151; }
+.cs-lane-card--buffer  { border-left: 3px solid #a89340; }
+.cs-lane-card--tree    { border-left: 3px solid #3a6b3a; }
 
 .cs-lane-card-top {
   display: flex;

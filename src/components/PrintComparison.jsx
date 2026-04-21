@@ -1,8 +1,8 @@
 import useSimStore from '../store/useSimStore';
 import { calculateMetrics, speedLabel, speedColor } from '../model/trafficModel';
 
-const TYPE_COLOR  = { sov: '#616875', bus: '#6b3535', bike: '#2d5a3d', parking: '#374151' };
-const TYPE_LABEL  = { sov: 'Car lane', bus: 'Bus lane', bike: 'Bike lane', parking: 'Parking' };
+const TYPE_COLOR  = { sov: '#616875', bus: '#6b3535', bike: '#2d5a3d', parking: '#374151', buffer: '#a89340', tree: '#3a6b3a' };
+const TYPE_LABEL  = { sov: 'Car lane', bus: 'Bus lane', bike: 'Bike lane', parking: 'Parking', buffer: 'Buffer', tree: 'Tree strip' };
 
 function LaneBars({ lanes }) {
   return (

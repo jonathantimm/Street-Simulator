@@ -7,6 +7,8 @@ export const LANE_TYPES = {
   BUS:     'bus',
   BIKE:    'bike',
   PARKING: 'parking',
+  BUFFER:  'buffer',
+  TREE:    'tree',
 };
 
 export const TIME_OF_DAY = {
@@ -22,6 +24,8 @@ export const DEFAULT_LANE_WIDTH = {
   [LANE_TYPES.BUS]:     11,
   [LANE_TYPES.BIKE]:     6,
   [LANE_TYPES.PARKING]:  8,
+  [LANE_TYPES.BUFFER]:   4,
+  [LANE_TYPES.TREE]:     2,
 };
 
 // Normalize: accept string lane ('sov') or object lane ({ type, widthFt })
