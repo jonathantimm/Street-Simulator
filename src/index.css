@@ -2002,6 +2002,15 @@ button { cursor: pointer; font-family: var(--font); }
 .cmp-delta--pos { background: #dcfce7; }
 .cmp-delta--neg { background: #fff7ed; }
 
+.cmp-delta-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
 .cmp-delta-people {
   font-size: 16px;
   font-weight: 800;
@@ -2201,6 +2210,13 @@ button { cursor: pointer; font-family: var(--font); }
     text-transform: uppercase;
     letter-spacing: 0.3px;
     font-weight: 600;
+  }
+
+  .print-impact-speed {
+    font-size: 9px;
+    color: #78716c;
+    margin-top: 4px;
+    font-weight: 500;
   }
 
   .print-footer {

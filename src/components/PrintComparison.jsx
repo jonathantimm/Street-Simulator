@@ -101,7 +101,10 @@ export default function PrintComparison() {
                 {peopleDelta >= 0 ? '+' : ''}{peopleDelta?.toLocaleString()} ppl/hr
               </div>
               <div className="print-impact-pct">({pct >= 0 ? '+' : ''}{pct}%)</div>
-              <div className="print-impact-lbl">people moved per hour</div>
+              <div className="print-impact-lbl">change in people moved per hour</div>
+              <div className="print-impact-speed">
+                car speed: {sqM?.speedMph} → {pM?.speedMph} mph
+              </div>
             </div>
           </div>
         )}

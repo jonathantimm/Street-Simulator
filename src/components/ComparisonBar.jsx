@@ -57,6 +57,7 @@ export default function ComparisonBar() {
       </div>
 
       <div className={`cmp-delta ${improved ? 'cmp-delta--pos' : 'cmp-delta--neg'}`}>
+        <div className="cmp-delta-label">Impact</div>
         <div className="cmp-delta-people">
           {peopleDelta >= 0 ? '+' : ''}{peopleDelta.toLocaleString()} ppl/hr
         </div>
@@ -64,7 +65,7 @@ export default function ComparisonBar() {
           ({pct >= 0 ? '+' : ''}{pct}%)
         </div>
         <div className="cmp-delta-speed">
-          car speed {speedDelta >= 0 ? '+' : ''}{speedDelta} mph
+          car: {sqM.speedMph} → {pM.speedMph} mph
         </div>
       </div>
 
