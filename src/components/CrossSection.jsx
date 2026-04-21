@@ -91,9 +91,10 @@ function WidthStepper({ label, value, onDec, onInc, min, max, note }) {
 }
 
 export default function CrossSection() {
-  const lanes           = useSimStore(s => s.lanes);
-  const totalWidthFt    = useSimStore(s => s.totalWidthFt);
-  const sidewalkWidthFt = useSimStore(s => s.sidewalkWidthFt);
+  const lanes            = useSimStore(s => s.lanes);
+  const totalWidthFt     = useSimStore(s => s.totalWidthFt);
+  const sidewalkLeftFt   = useSimStore(s => s.sidewalkLeftFt);
+  const sidewalkRightFt  = useSimStore(s => s.sidewalkRightFt);
 
   const setLane          = useSimStore(s => s.setLane);
   const setLaneWidth     = useSimStore(s => s.setLaneWidth);
@@ -101,10 +102,11 @@ export default function CrossSection() {
   const addLane          = useSimStore(s => s.addLane);
   const removeLane       = useSimStore(s => s.removeLane);
   const setTotalWidth    = useSimStore(s => s.setTotalWidth);
-  const setSidewalkWidth = useSimStore(s => s.setSidewalkWidth);
+  const setSidewalkLeft  = useSimStore(s => s.setSidewalkLeft);
+  const setSidewalkRight = useSimStore(s => s.setSidewalkRight);
 
   const lanesFt     = lanes.reduce((s, l) => s + l.widthFt, 0);
-  const sidewalksFt = sidewalkWidthFt * 2;
+  const sidewalksFt = sidewalkLeftFt + sidewalkRightFt;
   const usedFt      = lanesFt + sidewalksFt;
   const availableFt = totalWidthFt - sidewalksFt;
   const overBudget  = lanesFt > availableFt + 0.5;
@@ -131,13 +133,22 @@ export default function CrossSection() {
           note={streetWidthNote(totalWidthFt)}
         />
         <WidthStepper
-          label="Sidewalk (each side)"
-          value={sidewalkWidthFt}
-          onDec={() => setSidewalkWidth(sidewalkWidthFt - 1)}
-          onInc={() => setSidewalkWidth(sidewalkWidthFt + 1)}
+          label="Left sidewalk"
+          value={sidewalkLeftFt}
+          onDec={() => setSidewalkLeft(sidewalkLeftFt - 1)}
+          onInc={() => setSidewalkLeft(sidewalkLeftFt + 1)}
           min={4}
           max={30}
-          note={sidewalkNote(sidewalkWidthFt)}
+          note={sidewalkNote(sidewalkLeftFt)}
+        />
+        <WidthStepper
+          label="Right sidewalk"
+          value={sidewalkRightFt}
+          onDec={() => setSidewalkRight(sidewalkRightFt - 1)}
+          onInc={() => setSidewalkRight(sidewalkRightFt + 1)}
+          min={4}
+          max={30}
+          note={sidewalkNote(sidewalkRightFt)}
         />
       </div>
 
@@ -156,10 +167,10 @@ export default function CrossSection() {
       <div className="cs-bar-row" title={`Total: ${totalWidthFt} ft`}>
         <div
           className="cs-sidewalk"
-          style={{ flex: sidewalkWidthFt }}
-          title={`Sidewalk: ${sidewalkWidthFt} ft`}
+          style={{ flex: sidewalkLeftFt }}
+          title={`Left sidewalk: ${sidewalkLeftFt} ft`}
         >
-          <span className="cs-sidewalk-label">SIDEWALK<br />{sidewalkWidthFt}′</span>
+          <span className="cs-sidewalk-label">SW<br />{sidewalkLeftFt}′</span>
         </div>
 
         {lanes.map((lane, i) => (
@@ -176,10 +187,10 @@ export default function CrossSection() {
 
         <div
           className="cs-sidewalk"
-          style={{ flex: sidewalkWidthFt }}
-          title={`Sidewalk: ${sidewalkWidthFt} ft`}
+          style={{ flex: sidewalkRightFt }}
+          title={`Right sidewalk: ${sidewalkRightFt} ft`}
         >
-          <span className="cs-sidewalk-label">SIDEWALK<br />{sidewalkWidthFt}′</span>
+          <span className="cs-sidewalk-label">SW<br />{sidewalkRightFt}′</span>
         </div>
       </div>
 

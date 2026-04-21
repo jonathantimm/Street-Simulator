@@ -10,11 +10,12 @@ const DEFAULT_LANES = [
   lane(LANE_TYPES.SOV),
 ];
 
+// Scenario snapshot: only per-design fields. totalWidthFt is global (same street).
 export function extractScenario(s) {
   return {
     lanes:           s.lanes,
-    totalWidthFt:    s.totalWidthFt,
-    sidewalkWidthFt: s.sidewalkWidthFt,
+    sidewalkLeftFt:  s.sidewalkLeftFt,
+    sidewalkRightFt: s.sidewalkRightFt,
     timeOfDay:       s.timeOfDay,
     busHeadway:      s.busHeadway,
     busCapacity:     s.busCapacity,
@@ -38,11 +39,11 @@ function deserializeLanes(str) {
 }
 
 function encodeSnap(params, prefix, snap) {
-  params.set(`${prefix}l`, serializeLanes(snap.lanes));
-  params.set(`${prefix}w`, snap.totalWidthFt);
-  params.set(`${prefix}sw`, snap.sidewalkWidthFt);
-  params.set(`${prefix}t`, snap.timeOfDay);
-  params.set(`${prefix}h`, snap.busHeadway);
+  params.set(`${prefix}l`,  serializeLanes(snap.lanes));
+  params.set(`${prefix}sl`, snap.sidewalkLeftFt);
+  params.set(`${prefix}sr`, snap.sidewalkRightFt);
+  params.set(`${prefix}t`,  snap.timeOfDay);
+  params.set(`${prefix}h`,  snap.busHeadway);
   params.set(`${prefix}bc`, snap.busCapacity);
   params.set(`${prefix}ms`, snap.modeShift);
   if (snap.oneWay) params.set(`${prefix}ow`, '1');
@@ -53,10 +54,11 @@ function decodeSnap(params, prefix) {
   if (!lanesStr) return null;
   const lanes = deserializeLanes(lanesStr);
   if (!lanes.length) return null;
+  const legacySw = parseFloat(params.get(`${prefix}sw`)) || 9;
   return {
     lanes,
-    totalWidthFt:    parseFloat(params.get(`${prefix}w`))  || 40,
-    sidewalkWidthFt: parseFloat(params.get(`${prefix}sw`)) || 9,
+    sidewalkLeftFt:  parseFloat(params.get(`${prefix}sl`)) || legacySw,
+    sidewalkRightFt: parseFloat(params.get(`${prefix}sr`)) || legacySw,
     timeOfDay:   params.get(`${prefix}t`)  || TIME_OF_DAY.AM_PEAK,
     busHeadway:  parseInt(params.get(`${prefix}h`)  || '10', 10),
     busCapacity: params.get(`${prefix}bc`) || 'standard',
@@ -66,7 +68,8 @@ function decodeSnap(params, prefix) {
 }
 
 function buildURLParams(s) {
-  const params = new URLSearchParams({ tab: s.activeTab, mode: s.mode });
+  // totalWidthFt is global — encoded once, not per-scenario
+  const params = new URLSearchParams({ tab: s.activeTab, mode: s.mode, w: s.totalWidthFt });
   const sqSnap = s.activeTab === 'statusQuo' ? extractScenario(s) : s.scenarios.statusQuo;
   const pSnap  = s.activeTab === 'proposed'  ? extractScenario(s) : s.scenarios.proposed;
   if (sqSnap) encodeSnap(params, 'sq', sqSnap);
@@ -84,9 +87,12 @@ function parseURLState() {
     if (!sqSnap && !pSnap) return null;
     const tab  = (params.get('tab') === 'proposed' && pSnap) ? 'proposed' : 'statusQuo';
     const mode = params.get('mode') || 'simple';
+    // Global width: prefer top-level 'w', fall back to per-scenario for old URLs
+    const totalWidthFt = parseFloat(params.get('w')) || parseFloat(params.get('sqw')) || 40;
     const active = tab === 'proposed' ? pSnap : (sqSnap || DEFAULT_STATE);
     return {
       ...active,
+      totalWidthFt,
       activeTab: tab,
       mode,
       scenarios: {
@@ -100,10 +106,12 @@ function parseURLState() {
   if (params.has('lanes')) {
     const lanes = deserializeLanes(params.get('lanes'));
     if (!lanes.length) return null;
+    const sw = parseFloat(params.get('sidewalk')) || 9;
     return {
       lanes,
-      totalWidthFt:    parseFloat(params.get('width'))    || 40,
-      sidewalkWidthFt: parseFloat(params.get('sidewalk')) || 9,
+      totalWidthFt:    parseFloat(params.get('width')) || 40,
+      sidewalkLeftFt:  sw,
+      sidewalkRightFt: sw,
       timeOfDay:   params.get('time')        || TIME_OF_DAY.AM_PEAK,
       busHeadway:  parseInt(params.get('headway') || '10', 10),
       busCapacity: params.get('busCapacity') || 'standard',
@@ -126,6 +134,14 @@ function loadStorage() {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed.lanes) return null;
+    // Backward compat: old storage used sidewalkWidthFt
+    if (parsed.sidewalkWidthFt && !parsed.sidewalkLeftFt) {
+      parsed.sidewalkLeftFt  = parsed.sidewalkWidthFt;
+      parsed.sidewalkRightFt = parsed.sidewalkWidthFt;
+    }
+    // Always start fresh — don't restore comparison state from previous session
+    parsed.scenarios = { statusQuo: null, proposed: null };
+    parsed.activeTab = 'statusQuo';
     return parsed;
   } catch { return null; }
 }
@@ -133,7 +149,8 @@ function loadStorage() {
 const DEFAULT_STATE = {
   lanes:           DEFAULT_LANES,
   totalWidthFt:    40,
-  sidewalkWidthFt: 9,
+  sidewalkLeftFt:  9,
+  sidewalkRightFt: 9,
   timeOfDay:       TIME_OF_DAY.AM_PEAK,
   busHeadway:      10,
   busCapacity:     'standard',
@@ -148,28 +165,37 @@ const initial = parseURLState() || loadStorage() || DEFAULT_STATE;
 if (!initial.scenarios) initial.scenarios = { statusQuo: null, proposed: null };
 if (initial.oneWay === undefined) initial.oneWay = false;
 if (!initial.activeTab) initial.activeTab = 'statusQuo';
+if (!initial.sidewalkLeftFt) {
+  initial.sidewalkLeftFt  = initial.sidewalkWidthFt || 9;
+  initial.sidewalkRightFt = initial.sidewalkWidthFt || 9;
+}
 
 const useSimStore = create((set, get) => ({
-  lanes:           initial.lanes,
+  // Global (shared across both scenarios)
   totalWidthFt:    initial.totalWidthFt,
-  sidewalkWidthFt: initial.sidewalkWidthFt,
+  mode:            initial.mode,
+  activeTab:       initial.activeTab,
+  scenarios:       initial.scenarios,
+
+  // Active scenario
+  lanes:           initial.lanes,
+  sidewalkLeftFt:  initial.sidewalkLeftFt,
+  sidewalkRightFt: initial.sidewalkRightFt,
   timeOfDay:       initial.timeOfDay,
   busHeadway:      initial.busHeadway,
   busCapacity:     initial.busCapacity,
   modeShift:       initial.modeShift,
   oneWay:          initial.oneWay,
-  mode:            initial.mode,
-  activeTab:       initial.activeTab,
-  scenarios:       initial.scenarios,
 
   switchTab: (tab) => {
     const s = get();
     if (tab === s.activeTab) return;
     const currentSnap = extractScenario(s);
-    const targetSnap  = s.scenarios[tab] ?? currentSnap; // copy current if tab never visited
+    const targetSnap  = s.scenarios[tab] ?? currentSnap;
     set({
       activeTab: tab,
       ...targetSnap,
+      // totalWidthFt intentionally not touched — it's global
       scenarios: { ...s.scenarios, [s.activeTab]: currentSnap },
     });
     get()._sync();
@@ -206,14 +232,15 @@ const useSimStore = create((set, get) => ({
     set({ lanes }); get()._sync();
   },
 
-  setTotalWidth:    (v) => { set({ totalWidthFt: Math.max(30, Math.min(100, v)) }); get()._sync(); },
-  setSidewalkWidth: (v) => { set({ sidewalkWidthFt: Math.max(4, Math.min(30, v)) }); get()._sync(); },
-  setTimeOfDay:     (v) => { set({ timeOfDay: v });   get()._sync(); },
-  setBusHeadway:    (v) => { set({ busHeadway: v });  get()._sync(); },
-  setBusCapacity:   (v) => { set({ busCapacity: v }); get()._sync(); },
-  setModeShift:     (v) => { set({ modeShift: v });   get()._sync(); },
-  setMode:          (v) => { set({ mode: v });         get()._sync(); },
-  setOneWay:        (v) => { set({ oneWay: v });       get()._sync(); },
+  setTotalWidth:     (v) => { set({ totalWidthFt: Math.max(30, Math.min(100, v)) }); get()._sync(); },
+  setSidewalkLeft:   (v) => { set({ sidewalkLeftFt:  Math.max(4, Math.min(30, v)) }); get()._sync(); },
+  setSidewalkRight:  (v) => { set({ sidewalkRightFt: Math.max(4, Math.min(30, v)) }); get()._sync(); },
+  setTimeOfDay:      (v) => { set({ timeOfDay: v });   get()._sync(); },
+  setBusHeadway:     (v) => { set({ busHeadway: v });  get()._sync(); },
+  setBusCapacity:    (v) => { set({ busCapacity: v }); get()._sync(); },
+  setModeShift:      (v) => { set({ modeShift: v });   get()._sync(); },
+  setMode:           (v) => { set({ mode: v });         get()._sync(); },
+  setOneWay:         (v) => { set({ oneWay: v });       get()._sync(); },
 
   getShareURL: () => {
     return `${window.location.origin}${window.location.pathname}?${buildURLParams(get())}`;
@@ -227,6 +254,7 @@ const useSimStore = create((set, get) => ({
       const pSnap  = s.activeTab === 'proposed'  ? extractScenario(s) : s.scenarios.proposed;
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         ...extractScenario(s),
+        totalWidthFt: s.totalWidthFt,
         mode: s.mode,
         activeTab: s.activeTab,
         scenarios: { statusQuo: sqSnap, proposed: pSnap },

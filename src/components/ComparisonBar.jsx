@@ -23,15 +23,15 @@ export default function ComparisonBar() {
   const activeTab      = useSimStore(s => s.activeTab);
   const scenarios      = useSimStore(s => s.scenarios);
   const lanes          = useSimStore(s => s.lanes);
-  const totalWidthFt   = useSimStore(s => s.totalWidthFt);
-  const sidewalkWidthFt= useSimStore(s => s.sidewalkWidthFt);
+  const sidewalkLeftFt = useSimStore(s => s.sidewalkLeftFt);
+  const sidewalkRightFt= useSimStore(s => s.sidewalkRightFt);
   const timeOfDay      = useSimStore(s => s.timeOfDay);
   const busHeadway     = useSimStore(s => s.busHeadway);
   const busCapacity    = useSimStore(s => s.busCapacity);
   const modeShift      = useSimStore(s => s.modeShift);
   const oneWay         = useSimStore(s => s.oneWay);
 
-  const currentSnap = { lanes, totalWidthFt, sidewalkWidthFt, timeOfDay, busHeadway, busCapacity, modeShift, oneWay };
+  const currentSnap = { lanes, sidewalkLeftFt, sidewalkRightFt, timeOfDay, busHeadway, busCapacity, modeShift, oneWay };
   const sqSnap = activeTab === 'statusQuo' ? currentSnap : scenarios.statusQuo;
   const pSnap  = activeTab === 'proposed'  ? currentSnap : scenarios.proposed;
 

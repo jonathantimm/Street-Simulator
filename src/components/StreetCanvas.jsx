@@ -30,23 +30,23 @@ const SPEED = {
 // Assigns direction: -1 = moves upward (toward top), +1 = moves downward (toward bottom)
 // Two-way: left half of SOV go up (-1), right half go down (+1)
 // One-way: all SOV go up (-1)
-function getLaneLayout(lanes, canvasW, sidewalkWidthFt, totalWidthFt, oneWay = false) {
-  const sidewalkFraction = sidewalkWidthFt / totalWidthFt;
-  const sidewalkPx = canvasW * sidewalkFraction;
-  const travelPx = canvasW - sidewalkPx * 2;
-  const totalFt = lanes.reduce((s, l) => s + l.widthFt, 0) || 1;
+function getLaneLayout(lanes, canvasW, sidewalkLeftFt, sidewalkRightFt, totalWidthFt, oneWay = false) {
+  const leftPx   = canvasW * (sidewalkLeftFt  / totalWidthFt);
+  const rightPx  = canvasW * (sidewalkRightFt / totalWidthFt);
+  const travelPx = canvasW - leftPx - rightPx;
+  const totalFt  = lanes.reduce((s, l) => s + l.widthFt, 0) || 1;
 
   const layout = [];
-  layout.push({ type: 'sidewalk', x: 0, width: sidewalkPx });
+  layout.push({ type: 'sidewalk', x: 0, width: leftPx });
 
-  let x = sidewalkPx;
+  let x = leftPx;
   lanes.forEach(lane => {
     const w = travelPx * (lane.widthFt / totalFt);
     layout.push({ type: lane.type, x, width: w, widthFt: lane.widthFt });
     x += w;
   });
 
-  layout.push({ type: 'sidewalk', x, width: sidewalkPx });
+  layout.push({ type: 'sidewalk', x, width: rightPx });
 
   // Assign travel directions
   const sovIndices = layout.reduce((arr, l, i) => l.type === LANE_TYPES.SOV ? [...arr, i] : arr, []);
@@ -220,7 +220,8 @@ export default function StreetCanvas() {
 
   const lanes           = useSimStore(s => s.lanes);
   const totalWidthFt    = useSimStore(s => s.totalWidthFt);
-  const sidewalkWidthFt = useSimStore(s => s.sidewalkWidthFt);
+  const sidewalkLeftFt  = useSimStore(s => s.sidewalkLeftFt);
+  const sidewalkRightFt = useSimStore(s => s.sidewalkRightFt);
   const timeOfDay       = useSimStore(s => s.timeOfDay);
   const busHeadway      = useSimStore(s => s.busHeadway);
   const busCapacity     = useSimStore(s => s.busCapacity);
@@ -228,21 +229,21 @@ export default function StreetCanvas() {
   const oneWay          = useSimStore(s => s.oneWay);
   const metrics = calculateMetrics({ lanes, timeOfDay, busHeadway, busCapacity, modeShift, oneWay });
 
-  stateRef.current = { lanes, totalWidthFt, sidewalkWidthFt, metrics, oneWay };
+  stateRef.current = { lanes, totalWidthFt, sidewalkLeftFt, sidewalkRightFt, metrics, oneWay };
 
   function rebuild() {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const { lanes: ls, totalWidthFt: tw, sidewalkWidthFt: sw, metrics: m, oneWay: ow } = stateRef.current;
+    const { lanes: ls, totalWidthFt: tw, sidewalkLeftFt: sl, sidewalkRightFt: sr, metrics: m, oneWay: ow } = stateRef.current;
     canvas.width  = canvas.parentElement?.clientWidth || 400;
     canvas.height = CANVAS_H;
-    const layout  = getLaneLayout(ls, canvas.width, sw, tw, ow);
+    const layout  = getLaneLayout(ls, canvas.width, sl, sr, tw, ow);
     layoutRef.current   = layout;
     vehiclesRef.current = spawnVehicles(layout, m);
   }
 
   const laneKey = lanes.map(l => `${l.type}:${l.widthFt}`).join(',');
-  useEffect(() => { rebuild(); }, [laneKey, totalWidthFt, sidewalkWidthFt, metrics.sov.isCongested, oneWay]);
+  useEffect(() => { rebuild(); }, [laneKey, totalWidthFt, sidewalkLeftFt, sidewalkRightFt, metrics.sov.isCongested, oneWay]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -256,8 +257,8 @@ export default function StreetCanvas() {
       canvas.width  = canvas.parentElement?.clientWidth || 400;
       canvas.height = CANVAS_H;
       if (stateRef.current) {
-        const { lanes: ls, totalWidthFt: tw, sidewalkWidthFt: sw, oneWay: ow } = stateRef.current;
-        layoutRef.current   = getLaneLayout(ls, canvas.width, sw, tw, ow);
+        const { lanes: ls, totalWidthFt: tw, sidewalkLeftFt: sl, sidewalkRightFt: sr, oneWay: ow } = stateRef.current;
+        layoutRef.current   = getLaneLayout(ls, canvas.width, sl, sr, tw, ow);
         vehiclesRef.current = spawnVehicles(layoutRef.current, stateRef.current.metrics);
       }
     });

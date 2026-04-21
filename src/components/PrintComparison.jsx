@@ -20,7 +20,7 @@ function LaneBars({ lanes }) {
   );
 }
 
-function ScenarioCard({ title, snap, metrics }) {
+function ScenarioCard({ title, snap, metrics, totalWidthFt }) {
   if (!snap) return null;
   const { totalPeople, sov, bus, bike, sovLanes, busLanes, bikeLanes, speedMph } = metrics;
   return (
@@ -28,7 +28,7 @@ function ScenarioCard({ title, snap, metrics }) {
       <h2 className="print-card-title">{title}</h2>
       <LaneBars lanes={snap.lanes} />
       <div className="print-card-meta">
-        {snap.totalWidthFt}ft street · {snap.sidewalkWidthFt}ft sidewalks · {snap.oneWay ? 'One-way' : 'Two-way'}
+        {totalWidthFt}ft street · L:{snap.sidewalkLeftFt}ft / R:{snap.sidewalkRightFt}ft sidewalks · {snap.oneWay ? 'One-way' : 'Two-way'}
       </div>
       <div className="print-stat-grid">
         <div className="print-stat">
@@ -67,14 +67,15 @@ export default function PrintComparison() {
   const scenarios       = useSimStore(s => s.scenarios);
   const lanes           = useSimStore(s => s.lanes);
   const totalWidthFt    = useSimStore(s => s.totalWidthFt);
-  const sidewalkWidthFt = useSimStore(s => s.sidewalkWidthFt);
+  const sidewalkLeftFt  = useSimStore(s => s.sidewalkLeftFt);
+  const sidewalkRightFt = useSimStore(s => s.sidewalkRightFt);
   const timeOfDay       = useSimStore(s => s.timeOfDay);
   const busHeadway      = useSimStore(s => s.busHeadway);
   const busCapacity     = useSimStore(s => s.busCapacity);
   const modeShift       = useSimStore(s => s.modeShift);
   const oneWay          = useSimStore(s => s.oneWay);
 
-  const currentSnap = { lanes, totalWidthFt, sidewalkWidthFt, timeOfDay, busHeadway, busCapacity, modeShift, oneWay };
+  const currentSnap = { lanes, sidewalkLeftFt, sidewalkRightFt, timeOfDay, busHeadway, busCapacity, modeShift, oneWay };
   const sqSnap = activeTab === 'statusQuo' ? currentSnap : scenarios.statusQuo;
   const pSnap  = activeTab === 'proposed'  ? currentSnap : scenarios.proposed;
 
@@ -93,7 +94,7 @@ export default function PrintComparison() {
       </div>
 
       <div className="print-columns">
-        <ScenarioCard title="Status Quo" snap={sqSnap} metrics={sqM} />
+        <ScenarioCard title="Status Quo" snap={sqSnap} metrics={sqM} totalWidthFt={totalWidthFt} />
         {pSnap && sqSnap && (
           <div className="print-divider-col">
             <div className={`print-impact ${peopleDelta >= 0 ? 'print-impact--pos' : 'print-impact--neg'}`}>
@@ -108,7 +109,7 @@ export default function PrintComparison() {
             </div>
           </div>
         )}
-        <ScenarioCard title="Proposed Design" snap={pSnap} metrics={pM} />
+        <ScenarioCard title="Proposed Design" snap={pSnap} metrics={pM} totalWidthFt={totalWidthFt} />
       </div>
 
       <div className="print-footer">
