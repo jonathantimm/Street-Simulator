@@ -60,8 +60,8 @@ function decodeSnap(params, prefix) {
     sidewalkLeftFt:  parseFloat(params.get(`${prefix}sl`)) || legacySw,
     sidewalkRightFt: parseFloat(params.get(`${prefix}sr`)) || legacySw,
     timeOfDay:   params.get(`${prefix}t`)  || TIME_OF_DAY.AM_PEAK,
-    busHeadway:  parseInt(params.get(`${prefix}h`)  || '10', 10),
-    busCapacity: params.get(`${prefix}bc`) || 'standard',
+    busHeadway:  parseInt(params.get(`${prefix}h`)  || '5', 10),
+    busCapacity: params.get(`${prefix}bc`) || 'articulated',
     modeShift:   parseInt(params.get(`${prefix}ms`) || '25', 10),
     oneWay:      params.get(`${prefix}ow`) === '1',
   };
@@ -113,8 +113,8 @@ function parseURLState() {
       sidewalkLeftFt:  sw,
       sidewalkRightFt: sw,
       timeOfDay:   params.get('time')        || TIME_OF_DAY.AM_PEAK,
-      busHeadway:  parseInt(params.get('headway') || '10', 10),
-      busCapacity: params.get('busCapacity') || 'standard',
+      busHeadway:  parseInt(params.get('headway') || '5', 10),
+      busCapacity: params.get('busCapacity') || 'articulated',
       modeShift:   parseInt(params.get('modeShift') || '25', 10),
       oneWay:      false,
       mode:        params.get('mode') || 'simple',
@@ -152,8 +152,8 @@ const DEFAULT_STATE = {
   sidewalkLeftFt:  9,
   sidewalkRightFt: 9,
   timeOfDay:       TIME_OF_DAY.AM_PEAK,
-  busHeadway:      10,
-  busCapacity:     'standard',
+  busHeadway:      5,
+  busCapacity:     'articulated',
   modeShift:       25,
   oneWay:          false,
   mode:            'simple',
@@ -199,6 +199,13 @@ const useSimStore = create((set, get) => ({
       scenarios: { ...s.scenarios, [s.activeTab]: currentSnap },
     });
     get()._sync();
+  },
+
+  reorderLanes: (fromIndex, toIndex) => {
+    const lanes = [...get().lanes];
+    const [moved] = lanes.splice(fromIndex, 1);
+    lanes.splice(toIndex, 0, moved);
+    set({ lanes }); get()._sync();
   },
 
   setLane: (index, type) => {

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import useSimStore from '../store/useSimStore';
 import { LANE_TYPES, DEFAULT_LANE_WIDTH } from '../model/trafficModel';
 
@@ -71,11 +72,6 @@ function laneWidthNote(type, ft) {
   return '';
 }
 
-function nextType(type) {
-  const i = TYPE_CYCLE.indexOf(type);
-  return TYPE_CYCLE[(i + 1) % TYPE_CYCLE.length];
-}
-
 function WidthStepper({ label, value, onDec, onInc, min, max, note }) {
   return (
     <div className="cs-stepper">
@@ -91,6 +87,9 @@ function WidthStepper({ label, value, onDec, onInc, min, max, note }) {
 }
 
 export default function CrossSection() {
+  const [dragIndex,     setDragIndex]     = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+
   const lanes            = useSimStore(s => s.lanes);
   const totalWidthFt     = useSimStore(s => s.totalWidthFt);
   const sidewalkLeftFt   = useSimStore(s => s.sidewalkLeftFt);
@@ -99,6 +98,7 @@ export default function CrossSection() {
   const setLane          = useSimStore(s => s.setLane);
   const setLaneWidth     = useSimStore(s => s.setLaneWidth);
   const removeLaneAt     = useSimStore(s => s.removeLaneAt);
+  const reorderLanes     = useSimStore(s => s.reorderLanes);
   const addLane          = useSimStore(s => s.addLane);
   const removeLane       = useSimStore(s => s.removeLane);
   const setTotalWidth    = useSimStore(s => s.setTotalWidth);
@@ -200,8 +200,35 @@ export default function CrossSection() {
         style={{ gridTemplateColumns: `repeat(${Math.min(lanes.length, 4)}, 1fr)` }}
       >
         {lanes.map((lane, i) => (
-          <div key={i} className={`cs-lane-card cs-lane-card--${lane.type}`}>
+          <div
+            key={i}
+            className={`cs-lane-card cs-lane-card--${lane.type}${dragIndex === i ? ' cs-lane-card--dragging' : ''}${dragOverIndex === i && dragOverIndex !== dragIndex ? ' cs-lane-card--drag-over' : ''}`}
+            draggable
+            onDragStart={(e) => {
+              setDragIndex(i);
+              e.dataTransfer.effectAllowed = 'move';
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+              if (dragOverIndex !== i) setDragOverIndex(i);
+            }}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget)) setDragOverIndex(null);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (dragIndex !== null && dragIndex !== i) reorderLanes(dragIndex, i);
+              setDragIndex(null);
+              setDragOverIndex(null);
+            }}
+            onDragEnd={() => {
+              setDragIndex(null);
+              setDragOverIndex(null);
+            }}
+          >
             <div className="cs-lane-card-top">
+              <span className="cs-drag-handle" title="Drag to reorder">⠿</span>
               <span className="cs-lane-num">Lane {i + 1}</span>
               <button
                 className="cs-remove-btn"
@@ -211,15 +238,17 @@ export default function CrossSection() {
               >×</button>
             </div>
 
-            <button
-              className="cs-type-btn"
-              onClick={() => setLane(i, nextType(lane.type))}
-              title="Click to change lane type"
+            <select
+              className="select cs-type-select"
+              value={lane.type}
+              onChange={(e) => setLane(i, e.target.value)}
             >
-              <span className="cs-type-emoji">{TYPE_EMOJI[lane.type]}</span>
-              <span className="cs-type-label">{TYPE_LABEL[lane.type]}</span>
-              <span className="cs-type-hint">tap to change</span>
-            </button>
+              {TYPE_CYCLE.map(type => (
+                <option key={type} value={type}>
+                  {TYPE_EMOJI[type]} {TYPE_LABEL[type]}
+                </option>
+              ))}
+            </select>
 
             <div className="cs-width-ctrl">
               <button className="cs-w-btn" onClick={() => setLaneWidth(i, lane.widthFt - 1)} disabled={lane.widthFt <= 5}>−</button>
